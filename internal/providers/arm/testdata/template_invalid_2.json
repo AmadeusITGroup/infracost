@@ -1,0 +1,14 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/TestdeploymentTemplate.json#",
+    
+  "contentVersion": "1.0.0.0",
+    "metadata": {
+      "_generator": {
+        "name": "bicep",
+        "version": "0.26.54.24096",
+        "templateHash": "7729680081436334184"
+      }
+    },
+    "resources": []
+    
+}
