@@ -238,7 +238,21 @@ func TestBreakdownConfigFile(t *testing.T) {
 		},
 	)
 }
-
+func TestBreakdownArmTemplateConfigFile(t *testing.T) {
+	testName := testutil.CalcGoldenFileTestdataDirName()
+	dir := path.Join("./testdata", testName)
+	GoldenFileCommandTest(
+		t,
+		testutil.CalcGoldenFileTestdataDirName(),
+		[]string{
+			"breakdown",
+			"--config-file", path.Join(dir, "infracost.yml"),
+		},
+		&GoldenFileOptions{
+			IsJSON: true,
+		},
+	)
+}
 func TestBreakdownConfigFileWithUsageFile(t *testing.T) {
 	testName := testutil.CalcGoldenFileTestdataDirName()
 	dir := path.Join("./testdata", testName)
