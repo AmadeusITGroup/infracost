@@ -181,6 +181,8 @@ type Config struct {
 
 	SkipErrLine bool
 
+	IaC string
+
 	// for testing
 	EventsDisabled       bool
 	logWriter            io.Writer

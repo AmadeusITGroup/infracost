@@ -50,6 +50,7 @@ func breakdownCmd(ctx *config.RunContext) *cobra.Command {
 	cmd.Flags().Bool("terraform-use-state", false, "Use Terraform state instead of generating a plan. Applicable with --terraform-force-cli")
 	newEnumFlag(cmd, "format", "table", "Output format", []string{"json", "table", "html"})
 	cmd.Flags().StringSlice("fields", []string{"monthlyQuantity", "unit", "monthlyCost"}, "Comma separated list of output fields: all,price,monthlyQuantity,unit,hourlyCost,monthlyCost.\nSupported by table and html output formats")
+	cmd.Flags().String("iac", "terraform", "The name of the Infrastructure as Code tool you are using: terraform, cloudformation, arm, etc...")
 
 	// This is deprecated and will show a warning if used without --terraform-force-cli
 	_ = cmd.Flags().MarkHidden("terraform-use-state")
