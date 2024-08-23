@@ -822,6 +822,7 @@ func loadRunFlags(cfg *config.Config, cmd *cobra.Command) error {
 		}
 	}
 
+	cfg.IaC, _ = cmd.Flags().GetString("iac")
 	cfg.NoCache, _ = cmd.Flags().GetBool("no-cache")
 	cfg.Format, _ = cmd.Flags().GetString("format")
 	cfg.ShowSkipped, _ = cmd.Flags().GetBool("show-skipped")

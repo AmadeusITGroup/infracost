@@ -6,7 +6,9 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/awslabs/goformation/v7"
@@ -55,6 +57,15 @@ func Detect(ctx *config.RunContext, project *config.Project, includePastResource
 		return &DetectionOutput{Providers: []schema.Provider{cloudformation.NewTemplateProvider(projectContext, includePastResources)}, RootModules: 1}, nil
 	case ProjectTypeARMTemplate:
 		return &DetectionOutput{Providers: []schema.Provider{arm.NewTemplateProvider(projectContext, includePastResources, project.Path)}}, nil
+	}
+
+	if ctx.Config.IaC == "arm" {
+		fullPath, _ := filepath.Abs(project.Path)
+		providers, err := detectArmDir(fullPath, ctx, project, includePastResources)
+		if err != nil {
+			return &DetectionOutput{}, err
+		}
+		return &DetectionOutput{Providers: providers}, nil
 	}
 
 	pathOverrides := make([]hcl.PathOverrideConfig, len(ctx.Config.Autodetect.PathOverrides))
@@ -115,6 +126,32 @@ func Detect(ctx *config.RunContext, project *config.Project, includePastResource
 	}
 
 	return &DetectionOutput{Providers: autoProviders, RootModules: len(rootPaths)}, nil
+}
+
+func detectArmDir(fullPath string, ctx *config.RunContext, project *config.Project, includePastResources bool) ([]schema.Provider, error) {
+	fileInfos, err := os.ReadDir(fullPath)
+	if err != nil {
+		return nil, fmt.Errorf("could not get file information for path %s skipping evaluation", fullPath)
+	}
+
+	var providers []schema.Provider
+	for _, info := range fileInfos {
+		name := info.Name()
+		if info.IsDir() {
+			if !strings.HasPrefix(name, ".") {
+				subProviders, _ := detectArmDir(path.Join(fullPath, name), ctx, project, includePastResources)
+				providers = append(providers, subProviders...)
+			}
+			continue
+		}
+
+		if strings.HasSuffix(name, ".json") {
+			detectedProjectContext := config.NewProjectContext(ctx, project, nil)
+			detectedProjectContext.ContextValues.SetValue("project_type", "arm_dir")
+			providers = append(providers, arm.NewTemplateProvider(detectedProjectContext, includePastResources, path.Join(fullPath, name)))
+		}
+	}
+	return providers, nil
 }
 
 // configFileRootToProvider returns a provider for the given root path which is
