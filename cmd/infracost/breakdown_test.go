@@ -285,6 +285,11 @@ func TestBreakdownMultiProjectSkipPathsRootLevel(t *testing.T) {
 		}, nil,
 	)
 }
+func TestBreakdownArmDirectory(t *testing.T) {
+	testName := testutil.CalcGoldenFileTestdataDirName()
+	dir := path.Join("./testdata", testName)
+	GoldenFileCommandTest(t, testutil.CalcGoldenFileTestdataDirName(), []string{"breakdown", "--path", dir, "--iac", "arm"}, nil)
+}
 
 func TestBreakdownArmTemplateConfigFile(t *testing.T) {
 	testName := testutil.CalcGoldenFileTestdataDirName()
