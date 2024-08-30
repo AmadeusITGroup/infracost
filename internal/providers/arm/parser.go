@@ -107,6 +107,14 @@ func (p *Parser) parseResourceData(data *gjson.Result) (map[string]*schema.Resou
 	resources := make(map[string]*schema.ResourceData)
 	for _, res := range data.Array() {
 		t := res.Get("type").String()
+		if t == "Microsoft.Resources/deployments" {
+			d := res.Get("properties").Get("template").Get("resources")
+			r, _ := p.parseResourceData(&d)
+			for k, v := range r {
+				resources[k] = v
+			}
+			continue
+		}
 		if t == "Microsoft.Compute/virtualMachines" {
 			// There is no official naming for Linux or Windows virtual machines, so we need to modify the resource name to obtain the resource from the registry
 			GetOSResourceType(&t, &res)
