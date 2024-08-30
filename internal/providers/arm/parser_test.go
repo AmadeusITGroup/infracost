@@ -62,6 +62,72 @@ var testData = `{
   }
   `
 
+var testDataModule = `{
+	"resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2021-04-01",
+      "name": "nestedDeployment",
+      "properties": {
+        "mode": "Incremental",
+        "template": {
+          "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+          "contentVersion": "1.0.0.0",
+          "resources": [
+            {
+              "type": "Microsoft.Compute/disks",
+              "apiVersion": "2023-10-02",
+              "name": "ultra",
+              "location": "francecentral",
+              "properties": {
+                "creationData": {
+                  "createOption": "Empty"
+                },
+                "diskSizeGB": 2000,
+                "diskIOPSReadWrite": 4000,
+                "diskMBpsReadWrite": 20
+              },
+              "sku": {
+                "name": "UltraSSD_LRS"
+              }
+            },
+            {
+              "type": "Microsoft.Compute/virtualMachines",
+              "apiVersion": "2023-09-01",
+              "name": "basic_b1",
+              "location": "francecentral",
+              "properties": {
+                "hardwareProfile": {
+                  "vmSize": "standard_b1s"
+                },
+                "storageProfile": {
+                  "imageReference": {
+                    "publisher": "Canonical",
+                    "offer": "UbuntuServer",
+                    "sku": "16.04-LTS",
+                    "version": "latest"
+                  },
+                  "osDisk": {
+                    "createOption": "FromImage",
+                    "managedDisk": {
+                      "storageAccountType": "Standard_LRS"
+                    }
+                  }
+                },
+                "osProfile": {
+                  "computerName": "standard_b1s",
+                  "adminUsername": "fakeuser",
+                  "adminPassword": "Password1234!"
+                }
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}`
+
 func TestParseResourceData(t *testing.T) {
 
 	expected := []schema.ResourceData{
@@ -78,6 +144,31 @@ func TestParseResourceData(t *testing.T) {
 	}
 	parser := Parser{}
 	data := gjson.Parse(testData).Get("resources")
+	resources, _ := parser.parseResourceData(&data)
+	for i := range expected {
+		assert.Equal(t, resources[expected[i].Address].Type, expected[i].Type)
+		assert.Equal(t, resources[expected[i].Address].ProviderName, expected[i].ProviderName)
+		assert.Equal(t, resources[expected[i].Address].Address, expected[i].Address)
+	}
+
+}
+
+func TestParseResourceDataWithModules(t *testing.T) {
+
+	expected := []schema.ResourceData{
+		{
+			Type:         "Microsoft.Compute/disks",
+			ProviderName: "azurerm",
+			Address:      "Microsoft.Compute/disks/ultra",
+		},
+		{
+			Type:         "Microsoft.Compute/virtualMachines/Linux",
+			ProviderName: "azurerm",
+			Address:      "Microsoft.Compute/virtualMachines/Linux/basic_b1",
+		},
+	}
+	parser := Parser{}
+	data := gjson.Parse(testDataModule).Get("resources")
 	resources, _ := parser.parseResourceData(&data)
 	for i := range expected {
 		assert.Equal(t, resources[expected[i].Address].Type, expected[i].Type)
