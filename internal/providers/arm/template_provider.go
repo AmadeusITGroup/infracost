@@ -230,7 +230,7 @@ func resolveObjectParameter(parameters map[string]interface{}, objectParameter m
 
 func getParameter(parameterCall string) string {
 	splitValue := strings.Split(parameterCall, "[parameters('")
-	if len(splitValue) <= 1 {
+	if len(splitValue) != 2 {
 		return ""
 	}
 	key := strings.Split(splitValue[1], "')]")[0]
@@ -261,6 +261,8 @@ func handleExpressions(parameters map[string]interface{}, resource interface{}) 
 			param := getParameter(value.(string))
 			if param != "" {
 				res[key] = (parameters[param]).(map[string]interface{})["value"]
+			} else if isExpression(value.(string)) {
+				res[key], _ = evaluateExpression(value.(string)[1:len(value.(string))-1], parameters, nil)
 			}
 		case map[string]interface{}:
 			handleExpressions(parameters, value)
@@ -270,6 +272,15 @@ func handleExpressions(parameters map[string]interface{}, resource interface{}) 
 
 func (p *TemplateProvider) AccessModules(content *FileContent, path string) {
 	resolveModules(content.Parameters, content.Resources)
+}
+
+func isExpression(expression string) bool {
+	return strings.HasPrefix(expression, "[") && strings.HasSuffix(expression, "]")
+}
+
+func evaluateExpression(expression string, parameters map[string]interface{}, variables map[string]interface{}) (interface{}, error) {
+	tokens := Tokenize(expression)
+	return Evaluate(&tokens, parameters, variables)
 }
 
 func (p *TemplateProvider) MergeFileResources(dirPath string) {

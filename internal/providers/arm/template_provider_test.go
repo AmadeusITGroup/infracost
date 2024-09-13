@@ -127,3 +127,33 @@ func TestLoadResources(t *testing.T) {
 	assert.Equal(t, len(projects), 1)
 	assert.Equal(t, len(projects[0].PartialResources), 3)
 }
+
+func TestEvaluateExpression(t *testing.T) {
+	data := `{
+		"first": {
+			"type":  "string",
+			"value": "_"
+		},
+		"second": {
+			"type": "array",
+			"value": [1, 2, 3]
+		},
+		"third": {
+			"type": "array",
+			"value": ["1", "2", "3"]
+		}
+	}`
+	var parameters map[string]interface{}
+	json.Unmarshal([]byte(data), &parameters)
+
+	expressions := []string{"[concat('first',  parameters('first'), 'second')]",
+		"[contains(parameters('second'), 1)]",
+		"[contains(parameters('third'), '1')]"}
+
+	expected := []interface{}{"first_second", true, true}
+
+	for i := range expressions {
+		actual, _ := evaluateExpression(expressions[i][1:len(expressions[i])-1], parameters, nil)
+		assert.Equal(t, expected[i], actual)
+	}
+}
