@@ -2,8 +2,10 @@ package arm
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 
@@ -64,6 +66,43 @@ func (p *TemplateProvider) RelativePath() string {
 }
 
 func (p *TemplateProvider) VarFiles() []string {
+	path := p.ctx.RunContext.Config.ArmVarFile
+	if path != "" {
+		fullPath, _ := filepath.Abs(path)
+		return []string{fullPath}
+	}
+	return nil
+}
+
+func (p *TemplateProvider) LoadVarsFromFile() (map[string]map[string]interface{}, error) {
+	if p.VarFiles() == nil {
+		return nil, errors.New("no var file was read")
+	}
+	data, err := os.ReadFile(p.VarFiles()[0])
+	if err != nil {
+		return nil, err
+	}
+
+	// Store the file content in the content struct
+	var vars map[string]map[string]interface{}
+	if err = json.Unmarshal(data, &vars); err != nil {
+		return nil, err
+	}
+	return vars, nil
+}
+
+func (p *TemplateProvider) SetVars() error {
+	vars, err := p.LoadVarsFromFile()
+	if err != nil {
+		return err
+	}
+	for _, content := range p.content.FileContents {
+		for key := range content.Parameters {
+			if val, ok := vars["parameters"][key]; ok {
+				content.Parameters[key] = val
+			}
+		}
+	}
 	return nil
 }
 
@@ -80,6 +119,10 @@ func (p *TemplateProvider) LoadResources(usage schema.UsageMap) ([]*schema.Proje
 
 	// Merge all the resources from the files in the directory
 	p.MergeFileResources(p.Path)
+
+	p.SetVars()
+
+	p.LoadModules()
 
 	p.content.MergeBytes()
 
@@ -138,6 +181,95 @@ func (p *TemplateProvider) LoadFileContent(filePath string) {
 	}
 	p.content.FileContents[filePath] = content
 
+}
+
+func (p *TemplateProvider) LoadModules() {
+	for path, content := range p.content.FileContents {
+		p.AccessModules(&content, path)
+	}
+}
+
+func transmitParameters(source map[string]interface{}, destination map[string]interface{}) {
+	for key := range destination {
+		if val, ok := source[key]; ok {
+			destination[key] = val
+		}
+	}
+}
+
+func resolveParameters(global map[string]interface{}, local map[string]interface{}) {
+	for key, param := range local {
+		value := (param.(map[string]interface{}))["value"]
+		if value != nil {
+			switch value.(type) {
+			case string:
+				parameter := getParameter(value.(string))
+				if parameter != "" {
+					local[key].(map[string]interface{})["value"] = global[parameter].(map[string]interface{})["value"]
+				}
+			case map[string]interface{}:
+				resolveObjectParameter(global, value.(map[string]interface{}))
+			}
+		}
+	}
+}
+
+func resolveObjectParameter(parameters map[string]interface{}, objectParameter map[string]interface{}) {
+	for key, value := range objectParameter {
+		switch value.(type) {
+		case string:
+			parameter := getParameter(value.(string))
+			if parameter != "" {
+				objectParameter[key] = parameters[parameter].(map[string]interface{})["value"]
+			}
+		case map[string]interface{}:
+			resolveObjectParameter(parameters, value.(map[string]interface{}))
+		}
+	}
+}
+
+func getParameter(parameterCall string) string {
+	splitValue := strings.Split(parameterCall, "[parameters('")
+	if len(splitValue) <= 1 {
+		return ""
+	}
+	key := strings.Split(splitValue[1], "')]")[0]
+
+	return key
+}
+
+func resolveModules(parameters map[string]interface{}, resources []interface{}) {
+	for _, resource := range resources {
+		res := resource.(map[string]interface{})
+		if res["type"] == "Microsoft.Resources/deployments" {
+			localParams := res["properties"].(map[string]interface{})["parameters"]
+			embedTemplate := res["properties"].(map[string]interface{})["template"].(map[string]interface{})
+			resolveParameters(parameters, localParams.(map[string]interface{}))
+			transmitParameters(localParams.(map[string]interface{}), embedTemplate["parameters"].(map[string]interface{}))
+			resolveModules(embedTemplate["parameters"].(map[string]interface{}), embedTemplate["resources"].([]interface{}))
+		} else {
+			handleExpressions(parameters, resource)
+		}
+	}
+}
+
+func handleExpressions(parameters map[string]interface{}, resource interface{}) {
+	res := resource.(map[string]interface{})
+	for key, value := range res {
+		switch value.(type) {
+		case string:
+			param := getParameter(value.(string))
+			if param != "" {
+				res[key] = (parameters[param]).(map[string]interface{})["value"]
+			}
+		case map[string]interface{}:
+			handleExpressions(parameters, value)
+		}
+	}
+}
+
+func (p *TemplateProvider) AccessModules(content *FileContent, path string) {
+	resolveModules(content.Parameters, content.Resources)
 }
 
 func (p *TemplateProvider) MergeFileResources(dirPath string) {
