@@ -183,6 +183,8 @@ type Config struct {
 
 	IaC string
 
+	ArmVarFile string
+
 	// for testing
 	EventsDisabled       bool
 	logWriter            io.Writer
