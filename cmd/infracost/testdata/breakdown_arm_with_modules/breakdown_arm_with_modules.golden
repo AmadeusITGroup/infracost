@@ -1,0 +1,32 @@
+Project: infracost/infracost/cmd/infracost/testdata/breakdown_arm_with_modules/breakdown_arm_with_modules.json
+
+ Name                                                       Monthly Qty  Unit                      Monthly Cost   
+                                                                                                                  
+ Microsoft.Compute/virtualMachines/Linux/basic_a2                                                                 
+ ├─ Instance usage (Linux, pay as you go, Basic_A2)                 730  hours                           $57.67   
+ └─ os_disk                                                                                                       
+    ├─ Storage (S4, LRS)                                              1  months                           $1.54   
+    └─ Disk operations                               Monthly cost depends on usage: $0.0005 per 10k operations    
+                                                                                                                  
+ Microsoft.Compute/virtualMachines/Linux/vm_basic                                                                 
+ ├─ Instance usage (Linux, pay as you go, Basic_A2)                 730  hours                           $57.67   
+ └─ os_disk                                                                                                       
+    ├─ Storage (S4, LRS)                                              1  months                           $1.54   
+    └─ Disk operations                               Monthly cost depends on usage: $0.0005 per 10k operations    
+                                                                                                                  
+ OVERALL TOTAL                                                                                         $118.41 
+
+*Usage costs can be estimated by updating Infracost Cloud settings, see docs for other options.
+
+──────────────────────────────────
+2 cloud resources were detected:
+∙ 2 were estimated
+
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━┳━━━━━━━━━━━━┓
+┃ Project                                                          ┃ Baseline cost ┃ Usage cost* ┃ Total cost ┃
+┣━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━╋━━━━━━━━━━━━┫
+┃ infracost/infracost/cmd/infraco...reakdown_arm_with_modules.json ┃          $118 ┃           - ┃       $118 ┃
+┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━┻━━━━━━━━━━━━┛
+
+Err:
+

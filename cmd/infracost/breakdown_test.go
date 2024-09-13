@@ -298,6 +298,12 @@ func TestBreakdownArmDirectory(t *testing.T) {
 	GoldenFileCommandTest(t, testutil.CalcGoldenFileTestdataDirName(), []string{"breakdown", "--path", dir, "--iac", "arm"}, nil)
 }
 
+func TestBreakdownArmWithModules(t *testing.T) {
+	testName := testutil.CalcGoldenFileTestdataDirName()
+	dir := path.Join("./testdata", testName)
+	GoldenFileCommandTest(t, testutil.CalcGoldenFileTestdataDirName(), []string{"breakdown", "--path", dir + "/" + testName + ".json", "--iac", "arm", "--arm-varfile", dir + "/varfile.json"}, nil)
+}
+
 func TestBreakdownArmTemplateConfigFile(t *testing.T) {
 	testName := testutil.CalcGoldenFileTestdataDirName()
 	dir := path.Join("./testdata", testName)

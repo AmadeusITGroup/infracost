@@ -1,0 +1,22 @@
+{
+  "parameters": {
+      "rgLocation": {
+        "type": "string",
+        "value": "eastus"
+      },
+      "vmName": {
+        "type": "string",
+        "value": "vm_basic"
+      },
+      "osDisk": {
+        "type": "object",
+        "value": {
+          "createOption": "FromImage",
+          "managedDisk": {
+            "storageAccountType": "Standard_LRS",
+            "caching": "ReadWrite"
+          }
+        }
+      }
+  }
+}
