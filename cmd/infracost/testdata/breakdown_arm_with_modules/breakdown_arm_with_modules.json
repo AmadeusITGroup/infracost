@@ -1,0 +1,175 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "example",
+      "version": "0.27.1.19265",
+      "templateHash": "4270386830956032562"
+    }
+  },
+  "parameters": {
+      "rgLocation": {
+        "type": "string"
+      },
+      "vmName": {
+        "type": "string"
+      },
+      "osDisk": {
+        "type": "object"
+      }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2022-09-01",
+      "name": "module",
+      "location": "eastus",
+      "properties": {
+          "expressionEvaluationOptions": {
+            "scope": "inner"
+          },
+          "mode": "Incremental",
+          "parameters": {
+            "rgLocation": {
+              "value": "[parameters('rgLocation')]"
+            },
+            "vmName": {
+              "value": "[parameters('vmName')]"
+            },
+            "osDisk": {
+              "value": "[parameters('osDisk')]"
+            }
+          },
+          "template": {
+            "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+            "contentVersion": "1.0.0.0",
+            "metadata": {
+              "_generator": {
+                "name": "bicep",
+                "version": "0.26.54.24096",
+                "templateHash": "12573701218424896755"
+              }
+            },
+            "parameters": {
+              "rgLocation": {
+                "type": "string"
+              },
+              "vmName": {
+                "type": "string"
+              },
+              "osDisk": {
+                "type": "object"
+              }
+            },
+            "resources": [
+              {
+                  "type": "Microsoft.Compute/virtualMachines",
+                  "apiVersion": "2023-09-01",
+                  "name": "[parameters('vmName')]",
+                  "location": "[parameters('rgLocation')]",
+                  "properties": {
+                    "hardwareProfile": {
+                      "vmSize": "Basic_A2"
+                    },
+                    "storageProfile": {
+                      "imageReference": {
+                        "publisher": "Canonical",
+                        "offer": "UbuntuServer",
+                        "sku": "16.04-LTSr",
+                        "version": "latest"
+                      },
+                      "osDisk": "[parameters('osDisk')]"
+                    },
+                    "osProfile": {
+                          "computerName": "basic_b1",
+                          "adminUsername": "fakeuser",
+                          "adminPassword": "Password1234!"
+                      },
+                    "networkProfile": {
+                      "networkInterfaces": [
+                        {
+                          "id": "[resourceId('Microsoft.Network/networkInterfaces', '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Network/networkInterfaces/fakenic')]"
+                        }
+                      ]
+                    }
+                  }
+              },
+              {
+                "type": "Microsoft.Resources/deployments",
+                "apiVersion": "2022-09-01",
+                "name": "secondmodule",
+                "properties": {
+                  "expressionEvaluationOptions": {
+                    "scope": "inner"
+                  },
+                  "mode": "Incremental",
+                  "parameters": {
+                    "rgLocation": {
+                      "value": "[parameters('rgLocation')]"
+                    }
+                  },
+                  "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "metadata": {
+                      "_generator": {
+                        "name": "bicep",
+                        "version": "0.26.54.24096",
+                        "templateHash": "5635318929995614965"
+                      }
+                    },
+                    "parameters": {
+                      "rgLocation": {
+                        "type": "string"
+                      }
+                    },
+                    "resources": [
+                      {
+                          "type": "Microsoft.Compute/virtualMachines",
+                          "apiVersion": "2023-09-01",
+                          "name": "basic_a2",
+                          "location": "[parameters('rgLocation')]",
+                          "properties": {
+                            "hardwareProfile": {
+                              "vmSize": "Basic_A2"
+                            },
+                            "storageProfile": {
+                              "imageReference": {
+                                "publisher": "Canonical",
+                                "offer": "UbuntuServer",
+                                "sku": "16.04-LTSr",
+                                "version": "latest"
+                              },
+                              "osDisk": {
+                                "createOption": "FromImage",
+                                "managedDisk": {
+                                  "storageAccountType": "Standard_LRS",
+                                  "caching": "ReadWrite"
+                                }
+                              }
+                            },
+                            "osProfile": {
+                              "computerName": "basic_a2",
+                              "adminUsername": "fakeuser",
+                              "adminPassword": "Password1234!"
+                            },
+                            "networkProfile": {
+                              "networkInterfaces": [
+                                {
+                                  "id": "[resourceId('Microsoft.Network/networkInterfaces', '/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/testrg/providers/Microsoft.Network/networkInterfaces/fakenic')]"
+                                }
+                              ]
+                            }
+                          }
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+    }
+  ]
+}
