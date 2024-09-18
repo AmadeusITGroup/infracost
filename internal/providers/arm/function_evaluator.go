@@ -17,6 +17,7 @@ var SupportedFunctions = map[string]func(FunctionArguments) interface{}{
 	"parameters": parameters,
 	"concat":     concat,
 	"toLower":    toLower,
+	"variables":  variables,
 }
 
 func contains(arguments FunctionArguments) interface{} {
@@ -58,6 +59,10 @@ func concat(arguments FunctionArguments) interface{} {
 
 func parameters(arguments FunctionArguments) interface{} {
 	return (arguments.parameters[arguments.args[0].(string)]).(map[string]interface{})["value"]
+}
+
+func variables(arguments FunctionArguments) interface{} {
+	return arguments.variables[arguments.args[0].(string)]
 }
 
 func toLower(arguments FunctionArguments) interface{} {

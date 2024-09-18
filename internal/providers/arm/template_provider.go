@@ -74,7 +74,7 @@ func (p *TemplateProvider) VarFiles() []string {
 	return nil
 }
 
-func (p *TemplateProvider) LoadVarsFromFile() (map[string]map[string]interface{}, error) {
+func (p *TemplateProvider) LoadParamsFromFile() (map[string]map[string]interface{}, error) {
 	if p.VarFiles() == nil {
 		return nil, errors.New("no var file was read")
 	}
@@ -91,8 +91,8 @@ func (p *TemplateProvider) LoadVarsFromFile() (map[string]map[string]interface{}
 	return vars, nil
 }
 
-func (p *TemplateProvider) SetVars() error {
-	vars, err := p.LoadVarsFromFile()
+func (p *TemplateProvider) SetParams() error {
+	vars, err := p.LoadParamsFromFile()
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func (p *TemplateProvider) LoadResources(usage schema.UsageMap) ([]*schema.Proje
 	// Merge all the resources from the files in the directory
 	p.MergeFileResources(p.Path)
 
-	p.SetVars()
+	p.SetParams()
 
 	p.LoadModules()
 
@@ -197,7 +197,7 @@ func transmitParameters(source map[string]interface{}, destination map[string]in
 	}
 }
 
-func resolveParameters(global map[string]interface{}, local map[string]interface{}) {
+func resolveParameters(global map[string]interface{}, local map[string]interface{}, variables map[string]interface{}) {
 	for key, param := range local {
 		value := (param.(map[string]interface{}))["value"]
 		if value != nil {
@@ -206,6 +206,8 @@ func resolveParameters(global map[string]interface{}, local map[string]interface
 				parameter := getParameter(value.(string))
 				if parameter != "" {
 					local[key].(map[string]interface{})["value"] = global[parameter].(map[string]interface{})["value"]
+				} else if variable := getVariable(value.(string)); variable != "" {
+					local[key].(map[string]interface{})["value"] = variables[variable]
 				}
 			case map[string]interface{}:
 				resolveObjectParameter(global, value.(map[string]interface{}))
@@ -238,40 +240,99 @@ func getParameter(parameterCall string) string {
 	return key
 }
 
-func resolveModules(parameters map[string]interface{}, resources []interface{}) {
+func getVariable(variableCall string) string {
+	splitValue := strings.Split(variableCall, "[variables('")
+	if len(splitValue) != 2 {
+		return ""
+	}
+	key := strings.Split(splitValue[1], "')]")[0]
+
+	return key
+}
+
+func resolveModules(parameters map[string]interface{}, variables map[string]interface{}, resources []interface{}) {
 	for _, resource := range resources {
+		if variables != nil {
+			resolveVariables(parameters, variables)
+		}
 		res := resource.(map[string]interface{})
 		if res["type"] == "Microsoft.Resources/deployments" {
 			localParams := res["properties"].(map[string]interface{})["parameters"]
 			embedTemplate := res["properties"].(map[string]interface{})["template"].(map[string]interface{})
-			resolveParameters(parameters, localParams.(map[string]interface{}))
+			resolveParameters(parameters, localParams.(map[string]interface{}), variables)
 			transmitParameters(localParams.(map[string]interface{}), embedTemplate["parameters"].(map[string]interface{}))
-			resolveModules(embedTemplate["parameters"].(map[string]interface{}), embedTemplate["resources"].([]interface{}))
+			var embedVariables map[string]interface{}
+			if embedTemplate["variables"] != nil {
+				embedVariables = embedTemplate["variables"].(map[string]interface{})
+			}
+			resolveModules(embedTemplate["parameters"].(map[string]interface{}), embedVariables, embedTemplate["resources"].([]interface{}))
 		} else {
-			handleExpressions(parameters, resource)
+			handleExpressions(parameters, variables, resource)
 		}
 	}
 }
 
-func handleExpressions(parameters map[string]interface{}, resource interface{}) {
+func resolveVariables(parameters map[string]interface{}, variables map[string]interface{}) {
+	for key, value := range variables {
+		switch value.(type) {
+		case string:
+			if isExpression(value.(string)) {
+				variables[key], _ = evaluateExpression(value.(string)[1:len(value.(string))-1], parameters, variables)
+			}
+		case map[string]interface{}:
+			resolveObjectVariable(parameters, variables, value.(map[string]interface{}))
+		case []interface{}:
+			resolveArrayVariable(parameters, variables, value.([]interface{}))
+		}
+	}
+}
+
+func resolveObjectVariable(parameters map[string]interface{}, variables map[string]interface{}, objectVariable map[string]interface{}) {
+	for key, value := range objectVariable {
+		switch value.(type) {
+		case string:
+			if isExpression(value.(string)) {
+				objectVariable[key], _ = evaluateExpression(value.(string)[1:len(value.(string))-1], parameters, variables)
+			}
+		case map[string]interface{}:
+			resolveObjectVariable(parameters, variables, value.(map[string]interface{}))
+		case []interface{}:
+			resolveArrayVariable(parameters, variables, value.([]interface{}))
+		}
+	}
+}
+
+func resolveArrayVariable(parameters map[string]interface{}, variables map[string]interface{}, arrayVariable []interface{}) {
+	for index, value := range arrayVariable {
+		switch value.(type) {
+		case string:
+			if isExpression(value.(string)) {
+				arrayVariable[index], _ = evaluateExpression(value.(string)[1:len(value.(string))-1], parameters, variables)
+			}
+		case map[string]interface{}:
+			resolveObjectVariable(parameters, variables, value.(map[string]interface{}))
+		case []interface{}:
+			resolveArrayVariable(parameters, variables, value.([]interface{}))
+		}
+	}
+}
+
+func handleExpressions(parameters map[string]interface{}, variables map[string]interface{}, resource interface{}) {
 	res := resource.(map[string]interface{})
 	for key, value := range res {
 		switch value.(type) {
 		case string:
-			param := getParameter(value.(string))
-			if param != "" {
-				res[key] = (parameters[param]).(map[string]interface{})["value"]
-			} else if isExpression(value.(string)) {
-				res[key], _ = evaluateExpression(value.(string)[1:len(value.(string))-1], parameters, nil)
+			if isExpression(value.(string)) {
+				res[key], _ = evaluateExpression(value.(string)[1:len(value.(string))-1], parameters, variables)
 			}
 		case map[string]interface{}:
-			handleExpressions(parameters, value)
+			handleExpressions(parameters, variables, value)
 		}
 	}
 }
 
 func (p *TemplateProvider) AccessModules(content *FileContent, path string) {
-	resolveModules(content.Parameters, content.Resources)
+	resolveModules(content.Parameters, content.Variables, content.Resources)
 }
 
 func isExpression(expression string) bool {
