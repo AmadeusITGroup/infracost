@@ -148,12 +148,37 @@ func TestEvaluateExpression(t *testing.T) {
 
 	expressions := []string{"[concat('first',  parameters('first'), 'second')]",
 		"[contains(parameters('second'), 1)]",
-		"[contains(parameters('third'), '1')]"}
+		"[contains(parameters('third'), '1')]",
+		"[format('{0}/test/test:1.0.12', parameters('first'))]"}
 
-	expected := []interface{}{"first_second", true, true}
+	expected := []interface{}{"first_second", true, true, "_/test/test:1.0.12"}
 
 	for i := range expressions {
 		actual, _ := evaluateExpression(expressions[i][1:len(expressions[i])-1], parameters, nil)
 		assert.Equal(t, expected[i], actual)
+	}
+}
+
+func TestEvaluateExpressionWithObjectAccesses(t *testing.T) {
+	variables := map[string]interface{}{
+		"object": map[string]interface{}{
+			"name": "object_name",
+			"nested_object": map[string]interface{}{
+				"nested_name": "nested_object_name",
+				"nested_object": map[string]interface{}{
+					"nested_name": "nested_object_name",
+				},
+			},
+		},
+	}
+
+	expressions := []string{"concat(variables('object').name, '_', variables('object').nested_object.nested_object.nested_name)",
+		"variables('object').name", "toLower(variables('object').nested_object.nested_object.nested_name)"}
+
+	expected := []interface{}{"object_name_nested_object_name", "object_name", "nested_object_name"}
+
+	for i := range expressions {
+		result, _ := evaluateExpression(expressions[i], nil, variables)
+		assert.Equal(t, result, expected[i])
 	}
 }

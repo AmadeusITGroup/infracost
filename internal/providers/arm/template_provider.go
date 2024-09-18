@@ -3,6 +3,7 @@ package arm
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -335,13 +336,84 @@ func (p *TemplateProvider) AccessModules(content *FileContent, path string) {
 	resolveModules(content.Parameters, content.Variables, content.Resources)
 }
 
+func isAccessingObject(expression string) bool {
+	pattern := `(\w+\((?:[^)(]+|\((?:[^)(]+|\([^)(]*\))*\))*\))\.\w+`
+	re := regexp.MustCompile(pattern)
+	return re.MatchString(expression)
+}
+
 func isExpression(expression string) bool {
-	return strings.HasPrefix(expression, "[") && strings.HasSuffix(expression, "]")
+	pattern := `(\w+\((?:[^)(]+|\((?:[^)(]+|\([^)(]*\))*\))*\))`
+	re := regexp.MustCompile(pattern)
+	return re.MatchString(expression)
 }
 
 func evaluateExpression(expression string, parameters map[string]interface{}, variables map[string]interface{}) (interface{}, error) {
-	tokens := Tokenize(expression)
-	return Evaluate(&tokens, parameters, variables)
+	if !isAccessingObject(expression) && isExpression(expression) {
+		tokens := Tokenize(expression)
+		return Evaluate(&tokens, parameters, variables)
+	} else if isAccessingObject(expression) {
+		expression, err := resolveObjectAccess(expression, parameters, variables)
+		if err != nil {
+			return nil, err
+		}
+		return evaluateExpression(expression, parameters, variables)
+	} else if !isExpression(expression) {
+		return expression[1 : len(expression)-1], nil
+	}
+	return nil, fmt.Errorf("unsupported expression format")
+}
+
+func resolveObjectAccess(expression string, parameters map[string]interface{}, variables map[string]interface{}) (string, error) {
+	if !isAccessingObject(expression) && !isExpression(expression) {
+		return expression, nil
+	}
+	splitExpression := strings.Split(expression, ".")
+	restOfExpression := strings.Join(splitExpression[1:], ".")
+	var expr string
+	pattern := `(\w+\((?:[^)(]+|\((?:[^)(]+|\([^)(]*\))*\))*\))\.\w+`
+	re := regexp.MustCompile(pattern)
+	if re.MatchString(expression) {
+		match := re.FindStringSubmatch(expression)
+		expr = match[1]
+	}
+	startOfExpression := strings.Split(expression, expr)[0]
+	res, err := evaluateExpression(expr, parameters, variables)
+	if err != nil {
+		return "", err
+	}
+	value, restOfExpression := getValueFromObject(restOfExpression, res.(map[string]interface{}))
+	newExpression := startOfExpression + value + restOfExpression
+	return newExpression, nil
+}
+
+func getValueFromObject(expression string, object map[string]interface{}) (string, string) {
+	var j int
+	for j = 0; j < len(expression); j++ {
+		if expression[j] == ',' || expression[j] == ' ' || expression[j] == ')' || expression[j] == '.' {
+			break
+		}
+	}
+	key := expression[0:j]
+	val := object[key]
+	var value string
+	var restOfExpression string
+	var delimiter string
+	if len(expression) >= j {
+		restOfExpression = expression[j:]
+	}
+	switch val.(type) {
+	case string:
+		value = val.(string)
+		delimiter = "'"
+	case float64:
+		value = fmt.Sprintf("%g", val.(float64))
+	case bool:
+		value = fmt.Sprintf("%t", val.(bool))
+	case map[string]interface{}:
+		value, restOfExpression = getValueFromObject(expression[j+1:], val.(map[string]interface{}))
+	}
+	return delimiter + value + delimiter, restOfExpression
 }
 
 func (p *TemplateProvider) MergeFileResources(dirPath string) {

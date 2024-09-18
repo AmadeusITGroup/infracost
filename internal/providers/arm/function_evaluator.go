@@ -18,6 +18,27 @@ var SupportedFunctions = map[string]func(FunctionArguments) interface{}{
 	"concat":     concat,
 	"toLower":    toLower,
 	"variables":  variables,
+	"format":     format,
+}
+
+func format(arguments FunctionArguments) interface{} {
+	var newString string
+	result := arguments.args[0].(string)
+	for i := range arguments.args {
+		if i == 0 {
+			continue
+		}
+		switch arguments.args[i].(type) {
+		case string:
+			newString = arguments.args[i].(string)
+		case float64:
+			newString = fmt.Sprintf("%g", arguments.args[i].(float64))
+		case bool:
+			newString = fmt.Sprintf("%t", arguments.args[i].(bool))
+		}
+		result = strings.ReplaceAll(result, "{"+strconv.Itoa(i-1)+"}", newString)
+	}
+	return result
 }
 
 func contains(arguments FunctionArguments) interface{} {
