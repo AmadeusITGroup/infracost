@@ -19,6 +19,16 @@ var SupportedFunctions = map[string]func(FunctionArguments) interface{}{
 	"toLower":    toLower,
 	"variables":  variables,
 	"format":     format,
+	"empty":      empty,
+	"not":        not,
+}
+
+func empty(arguments FunctionArguments) interface{} {
+	return arguments.args[0] == nil
+}
+
+func not(arguments FunctionArguments) interface{} {
+	return !(arguments.args[0].(bool))
 }
 
 func format(arguments FunctionArguments) interface{} {
@@ -146,7 +156,7 @@ func Evaluate(tokens **Node, parameters map[string]interface{}, variables map[st
 				return nil, err
 			}
 			args = append(args, res) // append the result to the arguments of the current function
-			(*tokens) = (*tokens).next
+			//(*tokens) = (*tokens).next
 		} else if (*tokens).next.token == "(" { // if it's an unsupported function
 			return nil, fmt.Errorf("%s unsupported function", (*tokens).token)
 		} else if (*tokens).token != "," && (*tokens).token != "(" && (*tokens).token != ")" { // if it's a string that is not one of the special characters

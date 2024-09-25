@@ -257,6 +257,14 @@ func resolveModules(parameters map[string]interface{}, variables map[string]inte
 			resolveVariables(parameters, variables)
 		}
 		res := resource.(map[string]interface{})
+		condition := res["condition"]
+		if condition != nil {
+			deployResource, _ := evaluateExpression(condition.(string)[1:len(condition.(string))-1], parameters, variables)
+			if !(deployResource.(bool)) {
+				res["condition"] = deployResource
+				continue
+			}
+		}
 		if res["type"] == "Microsoft.Resources/deployments" {
 			localParams := res["properties"].(map[string]interface{})["parameters"]
 			embedTemplate := res["properties"].(map[string]interface{})["template"].(map[string]interface{})
