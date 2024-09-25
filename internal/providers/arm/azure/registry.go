@@ -4,7 +4,7 @@ import "github.com/infracost/infracost/internal/schema"
 
 // ResourceRegistry grouped alphabetically
 var ResourceRegistry []*schema.RegistryItem = []*schema.RegistryItem{
-	// getActiveDirectoryDomainServiceRegistryItem(),
+	getActiveDirectoryDomainServiceRegistryItem(),
 	// getActiveDirectoryDomainServiceReplicaSetRegistryItem(),
 	// getAPIManagementRegistryItem(),
 	// getApplicationGatewayRegistryItem(),
@@ -13,9 +13,9 @@ var ResourceRegistry []*schema.RegistryItem = []*schema.RegistryItem{
 	// getFunctionAppRegistryItem(),
 	// GetAzureRMAppNATGatewayRegistryItem(),
 	// getAppServiceCertificateBindingRegistryItem(),
-	// getAppServiceCertificateOrderRegistryItem(),
+	getAppServiceCertificateOrderRegistryItem(),
 	// getAppServiceCustomHostnameBindingRegistryItem(),
-	// getAppServicePlanRegistryItem(),
+	getAppServicePlanRegistryItem(),
 	// getApplicationInsightsWebTestRegistryItem(),
 	// getApplicationInsightsRegistryItem(),
 	// getAutomationAccountRegistryItem(),
@@ -78,7 +78,7 @@ var ResourceRegistry []*schema.RegistryItem = []*schema.RegistryItem{
 	// GetAzureRMMySQLServerRegistryItem(),
 	// GetAzureRMNotificationHubNamespaceRegistryItem(),
 	// getPointToSiteVpnGatewayRegistryItem(),
-	// getPostgreSQLFlexibleServerRegistryItem(),
+	getPostgreSQLFlexibleServerRegistryItem(),
 	// GetAzureRMPostgreSQLServerRegistryItem(),
 	// getPrivateDNSARecordRegistryItem(),
 	// getPrivateDNSAAAARecordRegistryItem(),
