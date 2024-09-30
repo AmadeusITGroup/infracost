@@ -1,5 +1,5 @@
 <p align="center">
-<a href="https://www.infracost.io"><img src=".github/assets/logo.svg" alt="Infracost breakdown command" width="300" /></a>
+<a href="https://www.infracost.io"><img src=".github/assets/infrabicep.png" alt="Infracost breakdown command" width="300" /></a>
 
 <p align="center">Infracost shows cloud cost estimates and FinOps best practices for Terraform. It lets engineers see a cost breakdown and understand costs <b>before making changes</b>, either in the terminal, VS Code or pull requests.</p>
 </p>
@@ -9,6 +9,10 @@
 <a href="https://www.infracost.io/community-chat"><img alt="Community Slack channel" src="https://img.shields.io/badge/chat-slack-%234a154b"/></a>
 <a href="https://twitter.com/intent/tweet?text=Get%20cost%20estimates%20for%20Terraform%20in%20pull%20requests!&url=https://www.infracost.io&hashtags=cloud,cost,terraform"><img alt="tweet" src="https://img.shields.io/twitter/url/http/shields.io.svg?style=social"/></a>
 </p>
+
+## About this fork
+
+In this fork, we focus on adding support for ARM Templates in Infracost, that currently only supports Terraform. It's still a work in progress that you could contribute to and enhance. Here is a [guide](contributing/arm_contribution_guide.md) that we made to help you in this journey if you ever decided to join us. This is an ambitious project that would allow us to use Infracost to estimate the costs of cloud infrastructure that was deployed using either ARM or Bicep.
 
 ## Get started
 
